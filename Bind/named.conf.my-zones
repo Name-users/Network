@@ -2,7 +2,7 @@ $ORIGIN prosto.name.
 $TTL 3600;
 
 @     IN SOA ns.prosto.name. admin.prosto.name.ru (
-                                        2021031401
+                                        2021031500
                                         128
                                         256
                                         512
