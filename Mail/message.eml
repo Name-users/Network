@@ -1,5 +1,5 @@
-From: name_users@mail.ru
-To: name_users@yandex.ru
+From: =?utf-8?B?0JrRg9GA0L7RgNGC?=<name_users@mail.ru>
+To: <name_users@yandex.ru>
 Subject: Message homework
 Content-type: multipart/mixed; boundary=part
 
@@ -22,9 +22,9 @@ Content-type: text/html; charset=utf-8
 </head>
 <body>
  <div class="text">
-    <h1>Специальное предложение!</h1>
-	<h3>Успейте забронировать места в незабываемом отеле у самого моря!</h3>
-	<h2>Количество мест ограничено!</h2>
+    <h1>Special offer!</h1>
+	<h3>Have time to book a place in an unforgettable hotel by the sea!</h3>
+	<h2>The number of seats is limited!</h2>
 	<img src="cid:photo">
  </div>
  <div class="name">
