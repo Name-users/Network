@@ -40,7 +40,7 @@ class SMTPSender:
     @staticmethod
     def _get_message_from_file(file_name: str) -> Optional[bytes]:
         with open(file_name) as file:
-            return file.read().encode()
+            return file.read().encode(encoding="windows-1251")
 
     @staticmethod
     def _ensure_code_correct(accept: bytes, accept_code: bytes) -> None:

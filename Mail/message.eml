@@ -7,6 +7,7 @@ Content-type: multipart/mixed; boundary=part
 Content-type: text/html; charset=utf-8
 
 <head>
+ <meta charset="windows-1251">
  <style>
   .text {
    text-align:  center;
@@ -22,9 +23,9 @@ Content-type: text/html; charset=utf-8
 </head>
 <body>
  <div class="text">
-    <h1>Special offer!</h1>
-	<h3>Have time to book a place in an unforgettable hotel by the sea!</h3>
-	<h2>The number of seats is limited!</h2>
+    <h1>Специальное предложение!</h1>
+	<h3>Успейте забронировать места в незабываемом отеле у самого моря!</h3>
+	<h2>Количество мест ограничено!</h2>
 	<img src="cid:photo">
  </div>
  <div class="name">
