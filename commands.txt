@@ -1,0 +1,17 @@
+. CAPABILITY
+. AUTHENTICATE PLAIN
+. CREATE box1
+. RENAME box1 box
+. list "" "*"
+. status INBOX (messages)
+. SELECT inbox
+. fetch 1:* flags
+. copy 1:* box
+. SELECT box
+. fetch 1:* flags
+. STORE 1:8 -FLAGS (\Seen)
+. STORE 1 +FLAGS (\Flagged)
+. Logout
+4a, 4b
+
+
