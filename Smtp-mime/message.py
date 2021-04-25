@@ -1,18 +1,5 @@
 from typing import Dict, List
 
-"""
-    From: =?utf-8?B?0JrRg9GA0L7RgNGC?=<messagebox@internet.ru>
-To: <messagebox@internet.ru>
-Subject: Message homework
-Content-type: multipart/mixed; boundary=part
-
---part
-Content-type: image/jpeg;
-Content-transfer-encoding: base64
-Content-disposition: attachment; filename: "test.jpg"
-Content-Id: photo
-    """
-
 
 class ContentMessage:
     _headers: Dict[str, str]
@@ -45,9 +32,6 @@ class Message:
             *(f'{key}: {value}' for key, value in self._headers.items()),
             '', ''
         ])
-        # body = f'--{self._boundary}\r\n'.encode() +\
-        #        f'--{self._boundary}\r\n'.encode().join(self._body) +\
-        #        f'--{self._boundary}--\r\n'.encode()
         body = f'--{self._boundary}\n'.encode().join([
             b'',
             *(content.__bytes__() + b'\n' for content in self._body)

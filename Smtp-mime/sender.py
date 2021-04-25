@@ -17,21 +17,18 @@ class SenderException(Exception):
 class SMTPSender:
     _format: Dict[str, str] = {'jpg': 'jpeg'}
     _host: str
-    # _user_name: str
-    # _password: str
     _mess_from: str
     _mess_to: str
     _port: int
     _sock: socket.socket
-    _dir: str
+    _directory: str
     _boundary: str = 'part'
     _subject: str
 
-    def __init__(self, host: str, mess_from: str, mess_to: str, port, dir: str, subject: str):
+    def __init__(self, host: str, mess_from: str, mess_to: str, port, directory: str, subject: str):
         self._host, self._port = host, port
-        # self._user_name, self._password = user_name, password
         self._mess_from, self._mess_to = mess_from, mess_to
-        self._dir = dir or os.getcwd()
+        self._directory = directory or os.getcwd()
         self._subject = subject
         self._sock = socket.socket()
 
@@ -49,11 +46,11 @@ class SMTPSender:
 
     def _open_content(self) -> List[ContentMessage]:
         result: List[ContentMessage] = []
-        for name in os.listdir(self._dir):
+        for name in os.listdir(self._directory):
             ext = name.rsplit('.', maxsplit=1)[1]
             if ext not in self._format.keys():
                 continue
-            with open(os.path.join(self._dir, name), 'rb') as file:
+            with open(os.path.join(self._directory, name), 'rb') as file:
                 result.append(ContentMessage(
                     {'Content-type': f'image/{self._format[ext]}',
                      'Content-transfer-encoding': 'base64',
@@ -63,11 +60,6 @@ class SMTPSender:
         if not len(result):
             raise SenderException('Dir is empty!')
         return result
-
-    # @staticmethod
-    # def _get_message_from_file(file_name: str) -> Optional[bytes]:
-    #     with open(file_name) as file:
-    #         return file.read().encode(encoding="windows-1251")
 
     def _create_message(self) -> Message:
         return Message(
@@ -101,7 +93,6 @@ class SMTPSender:
     def send_message(self, verbose: bool, auth: bool) -> Optional[str]:
         self._sock = ssl.wrap_socket(socket.socket())
         self._sock.settimeout(1)
-        # if (auth) do 103-105
         try:
             self._sock.connect((self._host, self._port))
             self._ensure_code_correct(self._accept_message(), b'220 ')
@@ -140,18 +131,16 @@ def main():
     for method in ['server', 'directory', 'to']:
         if getattr(args, method) is None:
             return print(f'Empty field {method}')
-    # args.server = 'test'
     try:
         host, port = args.server.strip(':').split(':')
     except ValueError:
         host, port = args.server, 25
     sender = SMTPSender(host, args.user_name, args.to, int(port), args.directory, args.subject)
     try:
-        print(sender.send_message(args.verbose, args.auth))#input('Path to file with message -> ')))
+        print(sender.send_message(args.verbose, args.auth))
     except SenderException as exc:
         print(exc.message.strip('\r\n'))
 
 
 if __name__ == '__main__':
     main()
-
