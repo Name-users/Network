@@ -1,3 +1,4 @@
+import argparse
 import os
 import socket
 import ssl
@@ -16,8 +17,8 @@ class SenderException(Exception):
 class SMTPSender:
     _format: Dict[str, str] = {'jpg': 'jpeg'}
     _host: str
-    _user_name: str
-    _password: str
+    # _user_name: str
+    # _password: str
     _mess_from: str
     _mess_to: str
     _port: int
@@ -26,13 +27,13 @@ class SMTPSender:
     _boundary: str = 'part'
     _subject: str
 
-    def __init__(self, host: str, user_name: str,
-                 password: str, mess_from: str, mess_to: str, port, dir: str, subject: str):
+    def __init__(self, host: str, mess_from: str, mess_to: str, port, dir: str, subject: str):
         self._host, self._port = host, port
-        self._user_name, self._password = user_name, password
+        # self._user_name, self._password = user_name, password
         self._mess_from, self._mess_to = mess_from, mess_to
         self._dir = dir or os.getcwd()
         self._subject = subject
+        self._sock = socket.socket()
 
     def _accept_message(self) -> Optional[bytes]:
         buffer = []
@@ -56,7 +57,7 @@ class SMTPSender:
                 result.append(ContentMessage(
                     {'Content-type': f'image/{self._format[ext]}',
                      'Content-transfer-encoding': 'base64',
-                     'Content-disposition': f'attachment; filename: "{name}"'},
+                     'Content-disposition': f'attachment;filename:"{name}"'},
                     base64.b64encode(file.read()),
                 ))
         if not len(result):
@@ -86,35 +87,71 @@ class SMTPSender:
         if not accept.startswith(accept_code):
             raise SenderException(accept.decode())
 
-    def _sender(self, commands: List[Tuple[bytes, bytes]]) -> None:
+    def _sender(self, commands: List[Tuple[bytes, bytes]], verbose: bool) -> None:
         for command, code in commands:
             self._sock.sendall(command)
-            self._ensure_code_correct(self._accept_message(), code)
+            answer = self._accept_message()
+            self._ensure_code_correct(answer, code)
+            if verbose:
+                print('Client:')
+                print(b'\n'.join(command.split(b'\r\n')).decode())
+                print('Server:')
+                print(b'\n'.join(answer.split(b'\r\n')).decode())
 
-    def send_message(self) -> Optional[str]:
+    def send_message(self, verbose: bool, auth: bool) -> Optional[str]:
         self._sock = ssl.wrap_socket(socket.socket())
         self._sock.settimeout(1)
         # if (auth) do 103-105
         try:
             self._sock.connect((self._host, self._port))
             self._ensure_code_correct(self._accept_message(), b'220 ')
+            self._sender([(f'EHLO {self._host}\r\n'.encode(), b'250 ')], verbose)
+            if auth:
+                self._sender([
+                    (b'AUTH LOGIN\r\n', b'334 '),
+                    (base64.b64encode(self._mess_from.encode()) + b'\r\n', b'334 '),
+                    (base64.b64encode(input('Password --> ').encode()) + b'\r\n', b'235 ')], verbose)
             self._sender([
-                (f'EHLO {self._host}\r\n'.encode(), b'250 '),
-                (b'AUTH LOGIN\r\n', b'334 '),
-                (base64.b64encode(self._user_name.encode()) + b'\r\n', b'334 '),
-                (base64.b64encode(self._password.encode()) + b'\r\n', b'235 '),
-                (f'MAIL FROM: {self._mess_from}\r\n'.encode(), b'250 '),
-                (f'rcpt TO: {self._mess_to}\r\n'.encode(), b'250 '),
+                (f'MAIL FROM: <{self._mess_from}>\r\n'.encode(), b'250 '),
+                (f'rcpt TO: <{self._mess_to}>\r\n'.encode(), b'250 '),
                 (b'DATA\r\n', b'354 ')
-            ])
+            ], verbose)
             self._sock.sendall(self._create_message().__bytes__())
             self._sender([
                 (b'\n.\r\n', b'250 '),
                 (b'QUIT\r\n', b'221 ')
-            ])
+            ], verbose)
             return 'Email sent successfully!'
         finally:
             self._sock.close()
 
 
+def main():
+    parser = argparse.ArgumentParser(prog='Smtp-mime', description='Smtp-mime with arguments')
+    parser.add_argument('--ssh', action='store_true', help='Start with ssh')
+    parser.add_argument('--auth', action='store_true', help='Authentication')
+    parser.add_argument('-v', '--verbose', action='store_true', help='Verbose')
+    parser.add_argument('-s', '--server', help='Server[:port]. Default 25 port.')
+    parser.add_argument('-d', '--directory', help='Directory')
+    parser.add_argument('-t', '--to', help='Email of recipient')
+    parser.add_argument('-f', '--from', dest='user_name', default='', help='Email of sender')
+    parser.add_argument('--subject', default='Happy Pictures', help='Sabject of mail.')
+    args = parser.parse_args()
+    for method in ['server', 'directory', 'to']:
+        if getattr(args, method) is None:
+            return print(f'Empty field {method}')
+    # args.server = 'test'
+    try:
+        host, port = args.server.strip(':').split(':')
+    except ValueError:
+        host, port = args.server, 25
+    sender = SMTPSender(host, args.user_name, args.to, int(port), args.directory, args.subject)
+    try:
+        print(sender.send_message(args.verbose, args.auth))#input('Path to file with message -> ')))
+    except SenderException as exc:
+        print(exc.message.strip('\r\n'))
+
+
+if __name__ == '__main__':
+    main()
 
