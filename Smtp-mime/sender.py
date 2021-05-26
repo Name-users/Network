@@ -3,7 +3,7 @@ import os
 import socket
 import ssl
 from dataclasses import dataclass
-from typing import Optional, Tuple, List, Dict
+from typing import Optional, Tuple, List
 import base64
 
 from message import ContentMessage, Message
@@ -90,13 +90,14 @@ class SMTPSender:
     def send_message(self, verbose: bool, auth: bool, tls: bool) -> Optional[str]:
         self._sock = socket.socket()
         self._sock.settimeout(1)
+        if self._port == 465:
+            self._sock, tls = ssl.wrap_socket(self._sock), False
         try:
             self._sock.connect((self._host, self._port))
             self._ensure_code_correct(self._accept_message(), b'220 ')
-            # self._sender([(f'EHLO {self._host}\r\n'.encode(), b'250 ')], verbose)
             if tls:
-                self._sender([(f'EHLO {self._host}\r\n'.encode(), b'250 ')], verbose)
-                self._sender([(b'STARTTLS\r\n', b'220 ')], verbose)
+                self._sender([(f'EHLO {self._host}\r\n'.encode(), b'250 ')], verbose)   # ESMTP
+                self._sender([(b'STARTTLS\r\n', b'220 ')], verbose)     # ESMTP
                 self._sock = ssl.wrap_socket(self._sock)
             self._sender([(f'EHLO {self._host}\r\n'.encode(), b'250 ')], verbose)
             if auth:
@@ -141,7 +142,8 @@ def main():
     try:
         print(sender.send_message(args.verbose, args.auth, args.ssh))
     except SenderException as exc:
-        print(exc.message.strip('\r\n'))
+        print(exc.message.strip('\r\n') or 'Unknown error!')
+        exit(1)
 
 
 if __name__ == '__main__':
