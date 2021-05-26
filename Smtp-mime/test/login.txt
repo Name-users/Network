@@ -1,0 +1,2 @@
+sender.py -s smtp.mail.ru:465 -d "C:\\Users\\Кирилл Кравченя\\Desktop\\test" -t messagebox@internet.ru --auth -f messagebox@internet.ru
+Password --> qazxc123456a

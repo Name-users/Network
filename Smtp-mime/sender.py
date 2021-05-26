@@ -15,7 +15,6 @@ class SenderException(Exception):
 
 
 class SMTPSender:
-    _format: Dict[str, str] = {'jpg': 'jpeg'}
     _host: str
     _mess_from: str
     _mess_to: str
@@ -25,7 +24,7 @@ class SMTPSender:
     _boundary: str = 'part'
     _subject: str
 
-    def __init__(self, host: str, mess_from: str, mess_to: str, port, directory: str, subject: str):
+    def __init__(self, host: str, mess_from: str, mess_to: str, port: int, directory: str, subject: str):
         self._host, self._port = host, port
         self._mess_from, self._mess_to = mess_from, mess_to
         self._directory = directory or os.getcwd()
@@ -48,11 +47,9 @@ class SMTPSender:
         result: List[ContentMessage] = []
         for name in os.listdir(self._directory):
             ext = name.rsplit('.', maxsplit=1)[1]
-            if ext not in self._format.keys():
-                continue
             with open(os.path.join(self._directory, name), 'rb') as file:
                 result.append(ContentMessage(
-                    {'Content-type': f'image/{self._format[ext]}',
+                    {'Content-type': f'image/{ext}; name={name}',
                      'Content-transfer-encoding': 'base64',
                      'Content-disposition': f'attachment;filename:"{name}"'},
                     base64.b64encode(file.read()),
@@ -90,12 +87,17 @@ class SMTPSender:
                 print('Server:')
                 print(b'\n'.join(answer.split(b'\r\n')).decode())
 
-    def send_message(self, verbose: bool, auth: bool) -> Optional[str]:
-        self._sock = ssl.wrap_socket(socket.socket())
+    def send_message(self, verbose: bool, auth: bool, tls: bool) -> Optional[str]:
+        self._sock = socket.socket()
         self._sock.settimeout(1)
         try:
             self._sock.connect((self._host, self._port))
             self._ensure_code_correct(self._accept_message(), b'220 ')
+            # self._sender([(f'EHLO {self._host}\r\n'.encode(), b'250 ')], verbose)
+            if tls:
+                self._sender([(f'EHLO {self._host}\r\n'.encode(), b'250 ')], verbose)
+                self._sender([(b'STARTTLS\r\n', b'220 ')], verbose)
+                self._sock = ssl.wrap_socket(self._sock)
             self._sender([(f'EHLO {self._host}\r\n'.encode(), b'250 ')], verbose)
             if auth:
                 self._sender([
@@ -137,7 +139,7 @@ def main():
         host, port = args.server, 25
     sender = SMTPSender(host, args.user_name, args.to, int(port), args.directory, args.subject)
     try:
-        print(sender.send_message(args.verbose, args.auth))
+        print(sender.send_message(args.verbose, args.auth, args.ssh))
     except SenderException as exc:
         print(exc.message.strip('\r\n'))
 
